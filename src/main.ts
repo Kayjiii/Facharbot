@@ -1,7 +1,9 @@
 import { Canvas, createCanvas, Image, loadImage } from "canvas"
-import Discord, {Client, Collection, Events, Guild, ApplicationCommandDataResolvable, SlashCommandBuilder, ApplicationCommand} from "discord.js"
+import Discord, {Client, Collection, Events, Guild, ApplicationCommandDataResolvable, SlashCommandBuilder, ApplicationCommand, TextChannel} from "discord.js"
 import fs from "fs"
 import path from 'node:path'
+import { makepdf } from "./makepdf"
+
 const config = JSON.parse(fs.readFileSync("config.json").toString())
 const client = new Discord.Client({ intents: ["Guilds", "GuildMessages", 'MessageContent', Discord.GatewayIntentBits.Guilds]});
 
@@ -34,6 +36,7 @@ client.once(Discord.Events.ClientReady, () => {
 
 
 client.on("messageCreate", async (message) => {
+    if (!(message.channel instanceof TextChannel)) return
 
     if (!message.content.startsWith(config.prefix)) {
         return;
@@ -45,58 +48,7 @@ client.on("messageCreate", async (message) => {
             break;
         
         case "makepdf":
-            const textMargin = 10
-            const imgMargin = 10
-            let insertText = ''
-            for (let index = 1; index < args.length; index++) {
-                insertText += args[index] + ' ';
-            } // am ende landet da ein space, plz fix
-            
-            const canvas = createCanvas(500, 900)
-            const ctx = canvas.getContext('2d')
-            
-            let fontSize = 30
-            //ctx.fillStyle = "white";
-            //ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = '30px Impact'
-            let textWidth = ctx.measureText(insertText).width;
-
-            // If the text is wider than the canvas, reduce the font size
-            if (textWidth > canvas.width) {
-                fontSize = fontSize * (canvas.width - textMargin) / textWidth;
-                ctx.font = fontSize + "px Arial";
-            }
-
-            if(message.attachments.toJSON()[0] != undefined){
-
-                const testusrImg = message.attachments.toJSON()[0].url
-                const testimg = await loadImage(testusrImg)
-                const scalefactor = (canvas.width - imgMargin * 2) / testimg.naturalWidth 
-                //testimg.width = testimg.naturalWidth * scalefactor
-                //testimg.height = testimg.naturalHeight * scalefactor
-                ctx.drawImage(testimg, imgMargin, imgMargin, testimg.naturalWidth * scalefactor, testimg.naturalHeight * scalefactor)
-                ctx.fillText(insertText, textMargin,testimg.naturalHeight * scalefactor + imgMargin * 2 + fontSize)
-            }
-            else{
-                ctx.fillText(insertText, textMargin, textMargin)
-            }
-
-            
-
-            // Draw line under text
-            let text = ctx.measureText(insertText)
-            ctx.strokeStyle = 'rgba(0,0,0,0.5)'
-            ctx.beginPath()
-            ctx.lineTo(50, 102)
-            ctx.lineTo(50 + text.width, 102)
-            ctx.stroke()
-            
-
-            message.channel.send({content: "lol", 
-            files: [{
-                attachment: canvas.createPNGStream(),
-                name: "sus.png"
-            }]})
+            makepdf(args, message)
             break;
     
         default:
