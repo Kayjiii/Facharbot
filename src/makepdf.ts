@@ -1,14 +1,14 @@
 import { Canvas, createCanvas, loadImage, CanvasRenderingContext2D, Image, PDFStream } from "canvas";
 import { Message, TextChannel } from "discord.js";
 import fs from "fs"
-import { genTitlePage } from "./genPages";
+import { genImagePage, genTitlePage } from "./genPages";
 import { Content } from "./custom";
 
 function getContent(msg: Message){
     const config = JSON.parse(fs.readFileSync("config.json").toString())
     let outC: Content = {
         title: "",
-        subtitles: [],
+        subtitle: [],
         imageUrls: [],
         tags: []
     }
@@ -31,8 +31,8 @@ function getContent(msg: Message){
         if(!ignore) {
             if(mode == 1) outC.title += args[i] + " "
             if(mode == 2) {
-                if(outC.subtitles[numSub - 1] == undefined) outC.subtitles[numSub - 1] = ""
-                outC.subtitles[numSub - 1] += args[i] + " " 
+                if(outC.subtitle[numSub - 1] == undefined) outC.subtitle[numSub - 1] = ""
+                outC.subtitle[numSub - 1] += args[i] + " " 
             }
         }
     }
@@ -55,6 +55,12 @@ export async function makepdf(args: string[], message: Message){
     const ctx = canvas.getContext('2d')
     
     await genTitlePage(ctx, canvas, content.imageUrls[0], content)
+    if (content.imageUrls.length > 1) {
+        content.imageUrls.shift()
+        ctx.addPage()
+        await genImagePage(ctx, canvas, content.imageUrls)
+    }
+    
 
     message.channel.send({
     files: [{
